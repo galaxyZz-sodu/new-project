@@ -1,6 +1,6 @@
 
 // 配置基本大小
-let baseSize = 16;
+let baseSize = 24;
  
 // 设置 rem 函数
 function setRem () {
