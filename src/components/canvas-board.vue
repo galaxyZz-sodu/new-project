@@ -1,9 +1,14 @@
 <template>
   <div class="hello">
-    <button v-permit="'name'"  @click="koutu">抠图</button>
-    <button v-permit="'age'" @click="draw">画画</button>
-    <button v-permit="'id'" @click="changeBlack">切黑</button>
-    <button @click="resetRem(40)">bian</button>
+    <button @click="koutu">抠图</button>
+    <button @click="draw">画画</button>
+    <button @click="erase">橡皮擦</button>
+    <button @click="changeBlack">切黑</button>
+    <button @click="clear">清空画布</button>
+    {{historyList.length === 0}}
+    <button @click="backHistory" :disabled="historyList.length <= 1 || (historyIndex <= 0 ? isUseHistory : false)" >回退历史</button>
+    <button @click="goHistory" :disabled="!isUseHistory || historyList.length - 1 === historyIndex" >前进历史</button>
+    <!-- <button @click="resetRem(40)">bian</button> -->
     <div class="now-write">
         <canvas
           id="write"
@@ -35,24 +40,17 @@
 import { fabric } from 'fabric'
 import { onMounted, ref, reactive } from "vue";
 
-// const writeSectionSpec = ref(150);
-
 let canvasWriter = ref({});
 
 let canvasWriterKou = reactive({});
 
 let base64 = ref('');
 
+let historyList = ref([]);
 
-// let timeout = ref(null);
+let isUseHistory = ref(false);
 
-// let currentValue = reactive({
-//   src: '',
-// })
-
-// let fabricObj = reactive({
-//   src: '',
-// })
+let historyIndex = ref(0);
 
 const changeBlack = () => {
   console.log(canvasWriterKou.value.backgroundColor, 'canvasWriterKou.value.backgroundColor');
@@ -63,8 +61,47 @@ const changeBlack = () => {
   }
 }
 
+const clearHistory = () => {
+  historyList.value = new Array();
+  isUseHistory.value = false;
+  historyIndex.value = 0;
+}
+
+const backHistory = () => {
+  if (!isUseHistory.value) {
+    historyIndex.value = historyList.value.length - 1;
+
+  }
+  historyIndex.value -= 1;
+  addImgtoWrite(historyList.value[historyIndex.value]);
+  console.log(historyIndex.value, 'indexx');
+  isUseHistory.value = true;
+}
+
+const goHistory = () => {
+  historyIndex.value += 1;
+  addImgtoWrite(historyList.value[historyIndex.value]);
+}
+
+const addImgtoWrite = (koutuImg) => {
+  new fabric.Image.fromURL(koutuImg, (img) => {
+    canvasWriter.value.clear();
+    canvasWriter.value.add(img)
+  })
+}
+
+const clear = () => {
+  clearHistory();
+  canvasWriter.value.clear();
+}
+
 const draw = () => {
   canvasWriter.value.isDrawingMode = !canvasWriter.value.isDrawingMode;
+}
+
+const erase = () => {
+  canvasWriter.value.freeDrawingBrush = new fabric.EraserBrush(canvasWriter.value) // 使用橡皮擦画笔
+  canvasWriter.value.freeDrawingBrush.width = 10 // 设置画笔粗细为 10
 }
 
 const initKou = () => {
@@ -89,12 +126,30 @@ const initWriteBoard = () => {
     width: 700,
     height: 500,
     isDrawingMode: true,
+    Selection: false,
   });
 
   canvasWriter.value.freeDrawingBrush.color = '#000';
   // canvasWriter.value.freeDrawingBrush.width = 5;
-  canvasWriter.value.freeDrawingBrush.width = 20
-  canvasWriter.value.freeDrawingBrush.color = 'black'
+  canvasWriter.value.freeDrawingBrush.width = 10
+  canvasWriter.value.freeDrawingBrush.color = 'black';
+
+  canvasWriter.value.on("mouse:up", (options) => {
+      setTimeout(() => {
+      const nowHistoryBase64 = canvasWriter.value.toDataURL({
+        format: 'image/png',
+        quality: 1,
+      });
+      if (isUseHistory.value) {
+        historyList.value.splice(historyIndex.value + 1)
+        isUseHistory.value = false;
+      }
+      historyList.value.push(nowHistoryBase64);
+      console.log(historyList.value, options);
+    }, 10)
+
+    
+});
 }
 
 const koutu = async () => {
@@ -108,9 +163,14 @@ const koutu = async () => {
   console.log(koutuImg, 'kout');
 }
 
+
+
 const addImgtoKou = (koutuImg) => {
   new fabric.Image.fromURL(koutuImg, (img) => {
+    // canvasWriterKou.value.contextContainer.globalCompositeOperation = 'source-in';
+    // canvasWriterKou.value.clear();
     canvasWriterKou.value.add(img)
+    // canvasWriterKou.value.contextContainer.globalCompositeOperation = 'source-over';
   })
 }
 
@@ -127,6 +187,8 @@ const transparentImg = (base64) => {
         imgHandler.width = img.width;
         imgHandler.height = img.height;
         imgHandlerCtx.drawImage(img, 0, 0);
+        // imgHandlerCtx.imageSmoothingEnabled = true;
+        // imgHandlerCtx.imageSmoothingQuality = 'high';
         imgArr = imgHandlerCtx.getImageData(0, 0, img.width, img.height).data;
         autoTransparentImg(imgArr, resImgArr, imgHandlerCtx, img);
         resolve(imgHandler.toDataURL());

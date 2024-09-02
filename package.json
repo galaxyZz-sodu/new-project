@@ -10,7 +10,7 @@
   "dependencies": {
     "canvas": "^2.11.2",
     "core-js": "^3.8.3",
-    "fabric": "^5.2.1",
+    "fabric": "5.2",
     "vue": "^3.2.13"
   },
   "devDependencies": {
