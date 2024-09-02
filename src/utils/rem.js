@@ -3,6 +3,8 @@
 let baseSize = 16;
 
 let yy = 123;
+
+let xx = 332;
  
 // 设置 rem 函数
 function setRem () {
