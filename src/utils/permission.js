@@ -6,6 +6,8 @@ const perObj = {
     id: false,
 }
 
+const xixi = 77;
+
 export function directives(app) {
     app.directive('permit', {
         
